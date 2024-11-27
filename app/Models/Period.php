@@ -9,7 +9,7 @@ class Period extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['periodno', 'statusgame'];
+    protected $fillable = ['periodno', 'win_state', 'statusgame'];
     protected $table = 'period';
 
     /**

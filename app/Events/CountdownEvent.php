@@ -12,14 +12,12 @@ class CountdownEvent implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
     public $data;
-    public $userid;
     /**
      * Create a new event instance.
      */
-    public function __construct($userid, $data)
+    public function __construct($data)
     {
         $this->data = $data;
-        $this->userid = $userid;
     }
 
     /**
@@ -29,8 +27,10 @@ class CountdownEvent implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
+        
+        $chanelName = 'channel-name';
         return [
-            new Channel('channel-name-' . $this->userid),
+            new Channel($chanelName),
         ];
     }
 

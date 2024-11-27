@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Member;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class MemberSeeder extends Seeder
 {
@@ -15,23 +16,8 @@ class MemberSeeder extends Seeder
     {
         Member::create([
             'username' => 'wantos',
-            'balance' => '950',
-            'periodno' => 'P2411000003', 
-            'statusgame' => '1', 
-        ]);
-
-        Member::create([
-            'username' => 'tukiyem',
-            'balance' => '500',
-            'periodno' => 'P2411000002', 
-            'statusgame' => '2', 
-        ]);
-
-        Member::create([
-            'username' => 'daunsirih88',
-            'balance' => '600',
-            'periodno' => 'P2411000001', 
-            'statusgame' => '2', 
+            'password' => Hash::make('wantos123'), // Password dienkripsi
+            'balance' => 10000000
         ]);
     }
 }

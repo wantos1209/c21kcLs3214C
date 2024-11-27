@@ -1,76 +1,120 @@
 <?php
 
 use App\Events\CountdownEvent;
+use App\Events\GetBalanceByUsernameEvent;
 use App\Models\Member;
+use App\Models\User;
 use App\Models\Period;
 use App\Models\PeriodBet;
 use App\Models\PeriodWin;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 
 Artisan::command('broadcast:countdown', function () {
+    $this->info("Starting Open/Close broadcasting. Press Ctrl + C to stop.");
+    $periodno = '';
+    $dataPeriod = [];
+    $step = 0;
+
     while (true) {
-        if (file_exists(storage_path('app/stop_broadcast'))) {
-            $this->info('Broadcast stopped.');
-            unlink(storage_path('app/stop_broadcast'));
-            break;
-        }
+        $currentTime = Carbon::now();
+        $currentSecond = (int)$currentTime->format('s');
         
-        // Buat periode baru
-        $period = Period::create([]);
+        if ($currentSecond % 20 === 0) {
+            $period = Period::create([]);
+            $periodno = $period->periodno;
 
-        // Hitung mundur 10 detik
-        broadcastCountdown($period);
+            // Get last 10 data period
+            $dataPeriod = Period::latest()->first();
 
-        // Ambil data taruhan
-        $bodyData = prepareBodyData($period);
-
-        try {
-            // Kirim data ke API eksternal
-            $response = sendDataToApi($bodyData);
-
-            if ($response->successful() && isset($response['result']['win_state'])) {
-                handleApiResponse($response->json(), $period);
-            } else {
-                broadcastFailure('Failed to fetch data from API.');
-            }
-        } catch (\Exception $e) {
-            broadcastFailure('An error occurred while fetching data.');
+            $step = 1;
         }
 
-        sleep(13); // Jeda 13 detik sebelum iterasi berikutnya
-        broadcastFinish($response->json(), $period);
-        sleep(3);
-    }
-})->purpose('Broadcast countdown event every 10 seconds');
-
-
-function broadcastCountdown($period)
-{
-    for ($i = 10; $i >= 0; $i--) {
         $data = [
             'status' => 'Success',
-            'statusBet' => $i === 10 ? 'Open bet' : ($i === 0 ? 'Close bet' : ''),
             'message' => 'Data successfully',
-            'periodno' => $period->periodno,
+            'periodno' => $periodno,
             'result' => '',
-            'is_countdown' => false
+            'is_countdown' => false,
+            'timeCD' => $currentTime->toDateTimeString(),
+            'statusBet' => 'Open bet'
         ];
+    
+        $isOpenBet = $currentSecond % 20 < 10; 
+        
+        if ($isOpenBet) {
+            if ($step === 1) {
+                $data["lastPeriod"] = $dataPeriod;
+                $data["countDown"] = 10 - ($currentSecond % 10);  
+                
+                if ($currentSecond % 10 < 8) {
+                    $data["state_anim"] = 1;  
+                } else {
+                    $data["state_anim"] = 2;  
+                }
+                
+                try {
+                    broadcast(new CountdownEvent($data));
+                } catch (\Exception $e) {
+                    \Log::error('Error broadcasting CountdownEvent: ' . $e->getMessage());
+                }
+            }
+        } else {
+            if ($step === 1) {
+                $data["statusBet"] = 'Close bet';
+                $data["state_anim"] = 3;  
 
-        if ($i === 10 || $i === 0) {
-            broadcast(new CountdownEvent($data));
+                $result = '';
+                
+                if ($currentSecond % 20 === 10) {
+                    $period->update(['statusgame' => 2]);
+                    try {
+                        broadcast(new CountdownEvent($data));
+                    } catch (\Exception $e) {
+                        \Log::error('Error broadcasting CountdownEvent: ' . $e->getMessage());
+                    }
+                    $result = postCalc($period);
+                }
+
+                if ($currentSecond % 20 == 13) {
+                    $data["state_anim"] = 4;
+                    broadcast(new CountdownEvent($data));
+                }
+                
+                if ($currentSecond % 20 == 16) {
+                    broadcastFinish($result, $period);
+                }
+            }
         }
-
-        if($i === 3){
-            broadcastAlmostClose($period);
-        }
-
         sleep(1);
     }
 
-    // Update status game setelah hitung mundur selesai
-    $period->update(['statusgame' => 2]);
+})->purpose('Broadcast countdown event every 10 seconds');
+
+function postCalc($period)
+{
+    $bodyData = prepareBodyData($period);
+
+    try {
+        $response = sendDataToApi($bodyData);
+
+        if ($response->successful()) {
+            $responseData = $response->json();
+            if (isset($responseData['result']['win_state'])) {
+                handleApiResponse($responseData, $period);
+            } else {
+                broadcastFailure('Invalid API response structure.');
+            }
+        } else {
+            \Log::error('API response error: ' . $response->status());
+            broadcastFailure('Failed to fetch data from API.');
+        }
+    } catch (\Exception $e) {
+        \Log::error('API call exception: ' . $e->getMessage());
+        broadcastFailure('An error occurred while fetching data.');
+    }
 }
 
 function prepareBodyData($period)
@@ -78,6 +122,7 @@ function prepareBodyData($period)
     $dataBet = PeriodBet::where('periodno', $period->periodno)->get();
 
     if ($dataBet->isEmpty()) {
+        \Log::warning('No bets found for period: ' . $period->periodno);
         return [
             "periodno" => $period->periodno,
             "data" => []
@@ -120,10 +165,35 @@ function handleApiResponse($data, $period)
         'is_countdown' => false
     ];
 
-    broadcast(new CountdownEvent($results));
+    Period::where('periodno', $period->periodno)->update([
+        'win_state' => $data['result']['win_state'],
+        'statusgame' => 2
+    ]);
+
+    try {
+        broadcast(new CountdownEvent($results));
+    } catch (\Exception $e) {
+        \Log::error('Error broadcasting CountdownEvent: ' . $e->getMessage());
+    }
+
+    //update statusgame pada member
+    Member::where('periodno', $period->periodno)->update([
+        'statusgame' => 2
+    ]);
 
     foreach ($data['result']['win'] as $dataWin) {
         saveWinData($dataWin, $data['periodno']);
+        $resultsBalance = [
+            'status' => 'Success',
+            'message' => 'Data successfully fetched',
+            'username' => $dataWin['username'],
+            'balance' => Member::where('username', $dataWin['username'])->first()->balance
+        ];
+        try {
+            broadcast(new GetBalanceByUsernameEvent($resultsBalance, $dataWin['username']));
+        } catch (\Exception $e) {
+            \Log::error('Error broadcasting GetBalanceByUsernameEvent: ' . $e->getMessage());
+        }
     }
 }
 
@@ -147,14 +217,18 @@ function saveWinData($dataWin, $periodno)
         'leg_bm' => $dataWin['leg_bm'],
     ]);
 
-    DB::transaction(function () use ($dataWin) {
-        $totalWin = $dataWin['mc'] + $dataWin['head_mc'] + $dataWin['body_mc'] +
-                    $dataWin['leg_mc'] + $dataWin['bm'] + $dataWin['head_bm'] +
-                    $dataWin['body_bm'] + $dataWin['leg_bm'];
-
-        $dataMember = Member::where('username', $dataWin['username'])->firstOrFail();
-        $dataMember->increment('balance', $totalWin);
-    });
+    try {
+        DB::transaction(function () use ($dataWin) {
+            $totalWin = $dataWin['mc'] + $dataWin['head_mc'] + $dataWin['body_mc'] +
+                        $dataWin['leg_mc'] + $dataWin['bm'] + $dataWin['head_bm'] +
+                        $dataWin['body_bm'] + $dataWin['leg_bm'];
+            
+            $dataUser = Member::where('username', $dataWin['username'])->firstOrFail();
+            $dataUser->increment('balance', $totalWin);
+        });
+    } catch (\Exception $e) {
+        \Log::error('Error saving win data: ' . $e->getMessage());
+    }
 }
 
 function broadcastFailure($message)
@@ -164,34 +238,27 @@ function broadcastFailure($message)
         'message' => $message
     ];
 
-    broadcast(new CountdownEvent($results));
+    try {
+        broadcast(new CountdownEvent($results));
+    } catch (\Exception $e) {
+        \Log::error('Error broadcasting failure: ' . $e->getMessage());
+    }
 }
 
-function broadcastFinish($data, $period)
+function broadcastFinish($result, $period)
 {
     $results = [
         'status' => 'Success',
         'statusBet' => 'Finish bet',
         'message' => 'Data successfully fetched',
         'periodno' => $period->periodno,
-        'result' => $data['result']['win_state'],
+        'result' => $result,
         'is_countdown' => false
     ];
 
-    broadcast(new CountdownEvent($results));
-}
-
-
-function broadcastAlmostClose($period)
-{
-    $results = [
-        'status' => 'Success',
-        'statusBet' => 'Almost close',
-        'message' => 'Data successfully fetched',
-        'periodno' => $period->periodno,
-        'result' => '',
-        'is_countdown' => true
-    ];
-
-    broadcast(new CountdownEvent($results));
+    try {
+        broadcast(new CountdownEvent($results));
+    } catch (\Exception $e) {
+        \Log::error('Error broadcasting Finish event: ' . $e->getMessage());
+    }
 }

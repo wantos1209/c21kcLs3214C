@@ -177,9 +177,14 @@
                 // console.log('test1');
                 if (window.Echo) {
                     // console.log('sudah masuk')
-                    window.Echo.channel('channel-name-'.{{$userid}})
+                    window.Echo.channel('channel-name')
                     .listen('.periodstart', (event) => {
                         console.log('Event diterima:', event);
+                    });
+
+                    window.Echo.channel('channel-balance-wantos')
+                    .listen('.balanceuser', (event) => {
+                        console.log('Balance:', event);
                     });
                 } else {
                     console.log('tidak ada echo')

@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('period', function (Blueprint $table) {
             $table->id();
             $table->string('periodno');
+            $table->string('win_state')->nullable();
             $table->integer('statusgame')->default(1);
             $table->timestamps();
         });
