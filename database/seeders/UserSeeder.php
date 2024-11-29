@@ -3,11 +3,10 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
-class UserSeeder extends Seeder
+class UserAccess extends Seeder
 {
     /**
      * Run the database seeds.
@@ -17,6 +16,8 @@ class UserSeeder extends Seeder
         User::create([
             'name' => 'wantos',
             'username' => 'wantos',
+            'divisi' => 'superadmin',
+            'status' => 'active',
             'password' => Hash::make('wantos123'), // Password dienkripsi
         ]);
     }

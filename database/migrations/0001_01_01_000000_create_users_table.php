@@ -18,9 +18,13 @@ return new class extends Migration
             $table->string('username')->unique(); // Mengganti email dengan username
             $table->timestamp('email_verified_at')->nullable(); // Bisa dihapus jika verifikasi email tidak diperlukan
             $table->string('password');
-            // $table->decimal('balance', 15, 2)->default(0);
-            // $table->string('periodno')->nullable();
-            // $table->integer('statusgame')->default(1);
+            $table->string('divisi');
+            $table->string('image');
+            $table->string('status');
+            $table->string('last_login');
+            $table->string('ip_login');
+            $table->string('pin');
+            $table->integer('pin_attempts')->default(0);
             $table->rememberToken();
             $table->timestamps();
         });

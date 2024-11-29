@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\RedirectResponse;
 
 class LoginController extends Controller
 {
@@ -16,20 +17,22 @@ class LoginController extends Controller
         ]);
     }
 
-    public function authenticate(Request $request)
+    public function authenticate(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
-            'username' => ['required', 'regex:/^[a-zA-Z0-9#]+$/'],
-            'password' => 'required'
+            'username' => ['required'],
+            'password' => ['required'],
         ]);
-
-        $credentials = $request->only('username', 'password');
-
-        if (Auth::attempt($credentials)) {
+ 
+        if (Auth::guard('web')->attempt($credentials)) {
+            $request->session()->put('user_id', Auth::user()->id);
+            $request->session()->regenerate();
             return redirect()->intended('dashboard');
-        } else {
-            return back()->with('loginError', 'Log in failed!');
         }
+ 
+        return back()->withErrors([
+            'username' => 'The provided credentials do not match our records.',
+        ])->onlyInput('username');
     }
 
     public function logout()

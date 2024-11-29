@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AgentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LobbyController;
 use App\Http\Controllers\LoginController;
@@ -17,9 +18,8 @@ use Illuminate\Support\Facades\Route;
 //     abort(404);
 // });
 
-Route::get('/', function () {
-    dd(Auth::user());
-});
+
+
 
 // Route::get('/', [TestWebSocketController::class, 'index']);
 Route::get('/test', [TestWebSocketController::class, 'testfunction']);
@@ -32,14 +32,25 @@ Route::post('/login', [LoginController::class, 'authenticate']);
 
 
 
-Route::get('/dashboard', function () {
-    return 'test';
-})->middleware('auth');
+Route::get('/dashboard', [DashboardController::class, 'index']);
 
-// Route::middleware(['auth'])->group(function () {
-//     Route::get('/dashboard', [DashboardController::class, 'index']);
-//     Route::get('/logout', [LoginController::class, 'logout']);
-// });
+/* Agent */
+Route::get('/agent', [AgentController::class, 'index']);
+Route::get('/agent/create', [AgentController::class, 'create']);
+Route::post('/agent/store', [AgentController::class, 'store']);
+
+Route::get('/dashboard', [DashboardController::class, 'index']);
+Route::get('/dashboard', [DashboardController::class, 'index']);
+Route::get('/dashboard', [DashboardController::class, 'index']);
+
+
+
+
+Route::middleware(['auth:web'])->group(function () {
+    // Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::get('/logout', [LoginController::class, 'logout']);
+    Route::get('/', [TestWebSocketController::class, 'index']);
+});
 
 
 Route::middleware([VerifyApiToken::class])->group(function () {

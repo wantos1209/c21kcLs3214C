@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\Period;
 use App\Models\PeriodBet;
 use App\Models\PeriodWin;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -17,8 +18,8 @@ class TestWebSocketController extends Controller
 {
     //
     public function index(Request $request) {
+        dd(auth('web')->user());
         try {
-    
             return view('welcome', [
                 'title' => 'Analytics',
                 'userid' => 'wantos',

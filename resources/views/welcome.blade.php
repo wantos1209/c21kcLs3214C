@@ -182,7 +182,7 @@
                         console.log('Event diterima:', event);
                     });
 
-                    window.Echo.channel('channel-balance-wantos')
+                    window.Echo.channel('channel-balance-cobacoba')
                     .listen('.balanceuser', (event) => {
                         console.log('Balance:', event);
                     });

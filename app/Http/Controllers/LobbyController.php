@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class LobbyController extends Controller
 {
     public function lobby()
     {
+        dd(Auth::user());
         if (session()->has('user')) {
             $user = session('user');
         } else {

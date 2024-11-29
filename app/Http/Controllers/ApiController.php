@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\GetBalanceByUsernameEvent;
+use App\Models\Game;
 use App\Models\Member;
 use App\Models\Period;
 use App\Models\PeriodBet;
@@ -108,13 +109,12 @@ class ApiController extends Controller
         ]);
     }
 
-
     public function savePalceBet(Request $request)
     {
-        $token = $this->checkAuthentication($request->bearerToken());
-        if (!$token) {
-            return response()->json(['status' => 'Failed', 'message' => 'Unauthorized'], 401);
-        }
+        // $token = $this->checkAuthentication($request->bearerToken());
+        // if (!$token) {
+        //     return response()->json(['status' => 'Failed', 'message' => 'Unauthorized'], 401);
+        // }
 
         $validator = Validator::make($request->all(), [
             'periodno' => 'required|string|max:255',
@@ -236,6 +236,15 @@ class ApiController extends Controller
         ], 201);
     }
 
+    public function listGame()
+    {
+        $dataGame = Game::orderBy('created_at', 'DESC')->get();
+        return response()->json([
+            'status' => 'Success',
+            'message' => 'Data successfully fetched',
+            'data' => $dataGame
+        ]);
+    }
 
     private function broadcastBalance($username)
     {
@@ -256,8 +265,9 @@ class ApiController extends Controller
         // if (!$token) {
         //     return response()->json(['status' => 'Failed', 'message' => 'Unauthorized'], 401);
         // }
+        
+        $username = Auth::user()->username;
 
-        $username = $request->username;
         if (!$username) {
             return response()->json([
                 'status' => 'Failed',

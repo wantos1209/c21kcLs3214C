@@ -85,6 +85,7 @@ Artisan::command('broadcast:countdown', function () {
                 
                 if ($currentSecond % 20 == 16) {
                     broadcastFinish($result, $period);
+                    
                 }
             }
         }
@@ -103,6 +104,7 @@ function postCalc($period)
         if ($response->successful()) {
             $responseData = $response->json();
             if (isset($responseData['result']['win_state'])) {
+                \Log::warning('No bets found for period: ' . json_encode($responseData['result']['win']));
                 handleApiResponse($responseData, $period);
             } else {
                 broadcastFailure('Invalid API response structure.');
@@ -122,7 +124,7 @@ function prepareBodyData($period)
     $dataBet = PeriodBet::where('periodno', $period->periodno)->get();
 
     if ($dataBet->isEmpty()) {
-        \Log::warning('No bets found for period: ' . $period->periodno);
+        // \Log::warning('No bets found for period: ' . $period->periodno);
         return [
             "periodno" => $period->periodno,
             "data" => []

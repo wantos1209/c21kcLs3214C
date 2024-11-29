@@ -31,7 +31,7 @@ class GetBalanceByUsernameEvent implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new Channel('channel-balance-wantos'),
+            new Channel('channel-balance-' . $this->userId),
         ];
     }
 

@@ -11,7 +11,7 @@ Route::get('/user', function (Request $request) {
 
 
 // Route::post('/processApi', [TestWebSocketController::class, 'hitung']);
-Route::post('/processApi', [ApiController::class, 'savePalceBet']);
+
 
 // Route::post('/getBalance', [ApiController::class, 'getBalance']);
 // Route::post('/getAllMember', [ApiController::class, 'getAllMember']);
@@ -24,6 +24,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         return 'test';
     });
     Route::post('/logout', [ApiController::class, 'logout']);
-    Route::post('/getBalance', [ApiController::class, 'getBalance']);
+    Route::get('/getBalance', [ApiController::class, 'getBalance']);
     Route::post('/getAllMember', [ApiController::class, 'getAllMember']);
+    Route::post('/processApi', [ApiController::class, 'savePalceBet']);
+
+    Route::get('/listGame', [ApiController::class, 'listGame']);
 });

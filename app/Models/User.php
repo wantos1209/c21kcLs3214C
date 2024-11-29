@@ -16,13 +16,27 @@ class User extends Authenticatable
      *
      * @var array<int, string>
      */
+
+    //  $table->string('divisi')->nullable();      
+    //  $table->string('image')->nullable();      
+    //  $table->string('status')->nullable();     
+    //  $table->string('last_login')->nullable(); 
+    //  $table->string('ip_login')->nullable();   
+    //  $table->string('pin')->nullable();        
+    //  $table->integer('pin_attempts')->default(0); 
+
+
     protected $fillable = [
         'name',
-        'username', // Mengganti 'email' dengan 'username'
+        'username', 
         'password',
-        // 'balance',
-        // 'periodno',
-        // 'statusgame'
+        'divisi',
+        'image',
+        'status',
+        'last_login',
+        'ip_login',
+        'pin',
+        'pin_attempts',
     ];
 
     /**
